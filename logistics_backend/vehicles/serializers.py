@@ -1,16 +1,19 @@
 from rest_framework import serializers
 from .models import Vehicle, Driver
 from core.serializers import UserProfileSerializer
+from warehouses.serializers import WarehouseSerializer
 
 
 class VehicleSerializer(serializers.ModelSerializer):
     current_driver_details = serializers.SerializerMethodField()
+    current_warehouse_details = WarehouseSerializer(source='current_warehouse', read_only=True)
 
     class Meta:
         model = Vehicle
         fields = [
             'id', 'license_plate', 'model', 'vehicle_type', 'capacity',
             'volume', 'status', 'current_driver', 'current_driver_details',
+            'current_warehouse', 'current_warehouse_details',
             'year', 'vin', 'is_active', 'created_at', 'updated_at'
         ]
         read_only_fields = ['id', 'created_at', 'updated_at']

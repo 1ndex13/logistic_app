@@ -1,3 +1,4 @@
+# vehicles/models.py
 from django.db import models
 from django.core.exceptions import ValidationError
 from core.models import User
@@ -24,6 +25,16 @@ class Vehicle(models.Model):
     capacity = models.DecimalField(max_digits=10, decimal_places=2, verbose_name='Грузоподъемность (т)')
     volume = models.DecimalField(max_digits=10, decimal_places=2, verbose_name='Объем (м³)')
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='AVAILABLE', verbose_name='Статус')
+    
+    # ДОБАВЛЯЕМ ПОЛЕ current_warehouse ВНУТРИ КЛАССА Vehicle
+    current_warehouse = models.ForeignKey(
+        'warehouses.Warehouse',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        verbose_name='Текущий склад'
+    )
+    
     current_driver = models.ForeignKey(
         'Driver',
         on_delete=models.SET_NULL,

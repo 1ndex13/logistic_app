@@ -71,6 +71,28 @@ class VehicleViewSet(viewsets.ModelViewSet):
         serializer = self.get_serializer(vehicle)
         return Response(serializer.data)
 
+    @action(detail=True, methods=['patch'])
+    def update_warehouse(self, request, pk=None):
+        vehicle = self.get_object()
+        warehouse_id = request.data.get('current_warehouse')
+        
+        if warehouse_id:
+            try:
+                from warehouses.models import Warehouse
+                warehouse = Warehouse.objects.get(id=warehouse_id)
+                vehicle.current_warehouse = warehouse
+                vehicle.save()
+            except Warehouse.DoesNotExist:
+                return Response(
+                    {'error': 'Склад не найден'}, 
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+        else:
+            vehicle.current_warehouse = None
+            vehicle.save()
+            
+        serializer = self.get_serializer(vehicle)
+        return Response(serializer.data)
 
 class DriverViewSet(viewsets.ModelViewSet):
     queryset = Driver.objects.all()
@@ -155,3 +177,29 @@ class DriverViewSet(viewsets.ModelViewSet):
             {'error': 'У водителя нет закрепленного транспорта'},
             status=status.HTTP_400_BAD_REQUEST
         )
+    
+    @action(detail=False, methods=['post'])
+    def bulk_allocate(self, request):
+
+        vehicle_ids = request.data.get('vehicle_ids', [])
+        warehouse_id = request.data.get('warehouse_id')
+    
+
+        vehicles = Vehicle.objects.filter(id__in=vehicle_ids, status='AVAILABLE')
+        warehouse = Warehouse.objects.get(id=warehouse_id)
+    
+        for vehicle in vehicles:
+            vehicle.status = 'IN_USE'
+            vehicle.current_warehouse = warehouse
+            vehicle.save()
+    
+        return Response({'message': f'{vehicles.count()} машин распределено на склад'})
+
+    @action(detail=False, methods=['get'])
+    def waiting_allocation(self, request):
+
+        vehicles = Vehicle.objects.filter(
+            Q(status='AVAILABLE') | Q(status='WAITING_ALLOCATION')
+    )
+        serializer = self.get_serializer(vehicles, many=True)
+        return Response(serializer.data)
