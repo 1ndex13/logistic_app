@@ -3,36 +3,28 @@ from .models import Vehicle, Driver
 from core.serializers import UserProfileSerializer
 from warehouses.serializers import WarehouseSerializer
 
-
 class VehicleSerializer(serializers.ModelSerializer):
-    current_driver_details = serializers.SerializerMethodField()
     current_warehouse_details = WarehouseSerializer(source='current_warehouse', read_only=True)
 
     class Meta:
         model = Vehicle
         fields = [
-            'id', 'license_plate', 'model', 'vehicle_type', 'capacity',
-            'volume', 'status', 'current_driver', 'current_driver_details',
-            'current_warehouse', 'current_warehouse_details',
-            'year', 'vin', 'is_active', 'created_at', 'updated_at'
+            'id', 'license_plate', 'model', 'vehicle_type', 'capacity', 'volume',
+            'status', 'current_warehouse', 'current_warehouse_details',
+            'cargo_recipient', 'cargo_description', 'cargo_volume',
+            'is_active', 'created_at', 'updated_at'
         ]
         read_only_fields = ['id', 'created_at', 'updated_at']
 
-    def get_current_driver_details(self, obj):
-        if obj.current_driver:
-            return DriverSerializer(obj.current_driver).data
-        return None
-
     def validate_capacity(self, value):
-        if value <= 0:
+        if value and value <= 0:
             raise serializers.ValidationError("Грузоподъемность должна быть положительным числом.")
         return value
 
     def validate_volume(self, value):
-        if value <= 0:
+        if value and value <= 0:
             raise serializers.ValidationError("Объем должен быть положительным числом.")
         return value
-
 
 class DriverSerializer(serializers.ModelSerializer):
     user_details = UserProfileSerializer(source='user', read_only=True)
@@ -52,6 +44,13 @@ class DriverSerializer(serializers.ModelSerializer):
             raise serializers.ValidationError("Пользователь должен иметь роль Водитель")
         return value
 
+class VehicleImportSerializer(serializers.Serializer):
+    file = serializers.FileField()
+
+    def validate_file(self, value):
+        if not value.name.endswith(('.xlsx', '.xls')):
+            raise serializers.ValidationError("Поддерживаются только Excel файлы")
+        return value
 
 class AssignVehicleSerializer(serializers.Serializer):
     vehicle_id = serializers.IntegerField()
